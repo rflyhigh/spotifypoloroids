@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template_string, request, jsonify
 import requests
 import base64
 import os
@@ -10,91 +10,8 @@ app = Flask(__name__)
 CLIENT_ID = os.environ.get("SPOTIFY_CLIENT_ID")
 CLIENT_SECRET = os.environ.get("SPOTIFY_CLIENT_SECRET")
 
-def get_spotify_token():
-    auth_string = f"{CLIENT_ID}:{CLIENT_SECRET}"
-    auth_bytes = auth_string.encode("utf-8")
-    auth_base64 = base64.b64encode(auth_bytes).decode("utf-8")
-    
-    url = "https://accounts.spotify.com/api/token"
-    headers = {
-        "Authorization": f"Basic {auth_base64}",
-        "Content-Type": "application/x-www-form-urlencoded"
-    }
-    data = {"grant_type": "client_credentials"}
-    
-    response = requests.post(url, headers=headers, data=data)
-    json_result = response.json()
-    
-    return json_result.get("access_token")
-
-def search_track(track_name, token):
-    url = f"https://api.spotify.com/v1/search?q={track_name}&type=track&limit=10"
-    headers = {
-        "Authorization": f"Bearer {token}"
-    }
-    
-    response = requests.get(url, headers=headers)
-    json_result = response.json()
-    
-    if "tracks" in json_result and "items" in json_result["tracks"] and len(json_result["tracks"]["items"]) > 0:
-        return json_result["tracks"]["items"]
-    return []
-
-@app.route('/')
-def home():
-    return render_template('index.html')
-
-@app.route('/app')
-def app_page():
-    return render_template('index.html')
-
-@app.route('/search', methods=['POST'])
-def search():
-    query = request.json.get('query', '')
-    
-    if not query:
-        return jsonify({"error": "No search query provided"}), 400
-    
-    if not CLIENT_ID or not CLIENT_SECRET:
-        return jsonify({"error": "Spotify API credentials not configured"}), 500
-    
-    token = get_spotify_token()
-    results = search_track(query, token)
-    
-    tracks_data = []
-    for track in results:
-        album = track.get("album", {})
-        artists = ", ".join([artist["name"] for artist in track.get("artists", [])])
-        release_date = album.get("release_date", "")
-        
-        # Format release date to just get the year
-        try:
-            if len(release_date) >= 4:  # At least has a year
-                year = release_date[:4]
-            else:
-                year = "Unknown"
-        except:
-            year = "Unknown"
-            
-        image_url = album.get("images", [{}])[0].get("url") if album.get("images") else ""
-        
-        track_data = {
-            "id": track.get("id"),
-            "name": track.get("name"),
-            "artist": artists,
-            "album": album.get("name", ""),
-            "year": year,
-            "image": image_url,
-            "preview_url": track.get("preview_url"),
-            "spotify_uri": track.get("uri")
-        }
-        tracks_data.append(track_data)
-    
-    return jsonify({"results": tracks_data})
-
-@app.route('/templates/index.html')
-def serve_index_template():
-    return """
+# HTML template as a string
+INDEX_TEMPLATE = """
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -538,7 +455,89 @@ def serve_index_template():
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
 </body>
 </html>
-    """
+"""
+
+def get_spotify_token():
+    auth_string = f"{CLIENT_ID}:{CLIENT_SECRET}"
+    auth_bytes = auth_string.encode("utf-8")
+    auth_base64 = base64.b64encode(auth_bytes).decode("utf-8")
+    
+    url = "https://accounts.spotify.com/api/token"
+    headers = {
+        "Authorization": f"Basic {auth_base64}",
+        "Content-Type": "application/x-www-form-urlencoded"
+    }
+    data = {"grant_type": "client_credentials"}
+    
+    response = requests.post(url, headers=headers, data=data)
+    json_result = response.json()
+    
+    return json_result.get("access_token")
+
+def search_track(track_name, token):
+    url = f"https://api.spotify.com/v1/search?q={track_name}&type=track&limit=10"
+    headers = {
+        "Authorization": f"Bearer {token}"
+    }
+    
+    response = requests.get(url, headers=headers)
+    json_result = response.json()
+    
+    if "tracks" in json_result and "items" in json_result["tracks"] and len(json_result["tracks"]["items"]) > 0:
+        return json_result["tracks"]["items"]
+    return []
+
+@app.route('/')
+def home():
+    return render_template_string(INDEX_TEMPLATE)
+
+@app.route('/app')
+def app_page():
+    return render_template_string(INDEX_TEMPLATE)
+
+@app.route('/search', methods=['POST'])
+def search():
+    query = request.json.get('query', '')
+    
+    if not query:
+        return jsonify({"error": "No search query provided"}), 400
+    
+    if not CLIENT_ID or not CLIENT_SECRET:
+        return jsonify({"error": "Spotify API credentials not configured"}), 500
+    
+    token = get_spotify_token()
+    results = search_track(query, token)
+    
+    tracks_data = []
+    for track in results:
+        album = track.get("album", {})
+        artists = ", ".join([artist["name"] for artist in track.get("artists", [])])
+        release_date = album.get("release_date", "")
+        
+        # Format release date to just get the year
+        try:
+            if len(release_date) >= 4:  # At least has a year
+                year = release_date[:4]
+            else:
+                year = "Unknown"
+        except:
+            year = "Unknown"
+            
+        image_url = album.get("images", [{}])[0].get("url") if album.get("images") else ""
+        
+        track_data = {
+            "id": track.get("id"),
+            "name": track.get("name"),
+            "artist": artists,
+            "album": album.get("name", ""),
+            "year": year,
+            "image": image_url,
+            "preview_url": track.get("preview_url"),
+            "spotify_uri": track.get("uri")
+        }
+        tracks_data.append(track_data)
+    
+    return jsonify({"results": tracks_data})
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
