@@ -48,6 +48,7 @@ INDEX_TEMPLATE = """
             font-size: 2.5rem;
             margin-bottom: 10px;
             letter-spacing: 2px;
+            font-weight: 600;
         }
 
         header p {
@@ -123,6 +124,7 @@ INDEX_TEMPLATE = """
             margin-bottom: 20px;
             font-size: 1.8rem;
             letter-spacing: 1px;
+            font-weight: 600;
         }
 
         .polaroid {
@@ -130,6 +132,7 @@ INDEX_TEMPLATE = """
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
             padding: 15px 15px 30px;
             display: inline-block;
+            width: 100%;
             max-width: 400px;
             transition: transform 0.3s, box-shadow 0.3s;
         }
@@ -149,6 +152,7 @@ INDEX_TEMPLATE = """
             height: 300px;
             overflow: hidden;
             margin-bottom: 15px;
+            background-color: #f5f5f5;
         }
 
         .polaroid-image img {
@@ -201,20 +205,27 @@ INDEX_TEMPLATE = """
             font-size: 0.8rem;
             line-height: 1.4;
             opacity: 0.7;
+            margin-top: 5px;
         }
 
         .result-item {
             cursor: pointer;
             transition: transform 0.3s;
+            display: flex;
+            justify-content: center;
         }
 
         .result-item:hover {
             transform: translateY(-5px);
         }
 
-        .download-btn {
-            display: block;
+        .button-container {
+            display: flex;
+            justify-content: space-between;
             margin-top: 15px;
+        }
+
+        .download-btn, .share-btn {
             padding: 8px 16px;
             background-color: #2d2b2c;
             color: white;
@@ -223,16 +234,12 @@ INDEX_TEMPLATE = """
             cursor: pointer;
             font-family: 'Montserrat', sans-serif;
             transition: background-color 0.3s;
+            flex: 1;
+            margin: 0 5px;
         }
 
-        .download-btn:hover {
+        .download-btn:hover, .share-btn:hover {
             background-color: #1a1919;
-        }
-        
-        .spotify-player {
-            margin-top: 15px;
-            width: 100%;
-            height: 80px;
         }
         
         .error, .no-results {
@@ -242,6 +249,66 @@ INDEX_TEMPLATE = """
             color: #2d2b2c;
         }
 
+        .share-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.7);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background-color: #dcd7d3;
+            padding: 30px;
+            border-radius: 8px;
+            max-width: 500px;
+            width: 90%;
+            text-align: center;
+        }
+
+        .modal-image {
+            max-width: 100%;
+            margin-bottom: 20px;
+            border: 10px solid white;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .share-options {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .share-option {
+            padding: 10px 15px;
+            background-color: #2d2b2c;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: 'Montserrat', sans-serif;
+            transition: background-color 0.3s;
+        }
+
+        .share-option:hover {
+            background-color: #1a1919;
+        }
+
+        .close-modal {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            font-size: 24px;
+            color: white;
+            cursor: pointer;
+        }
+
         @media (max-width: 768px) {
             #search-input {
                 width: 70%;
@@ -249,6 +316,14 @@ INDEX_TEMPLATE = """
             
             .polaroid {
                 max-width: 100%;
+            }
+            
+            .button-container {
+                flex-direction: column;
+            }
+            
+            .download-btn, .share-btn {
+                margin: 5px 0;
             }
         }
     </style>
@@ -277,24 +352,42 @@ INDEX_TEMPLATE = """
         
         <div class="polaroid-demo">
             <h2>Polaroid Demo</h2>
-            <div class="polaroid">
-                <div class="polaroid-content">
-                    <div class="polaroid-image">
-                        <img src="https://i.scdn.co/image/ab67616d0000b2731dacfbc31cc873d132958af9" alt="Demo Polaroid">
-                    </div>
-                    <div class="polaroid-info">
-                        <h3 class="polaroid-title">SONG TITLE</h3>
-                        <p class="polaroid-artist">ARTIST NAME</p>
-                        <div class="polaroid-details">
-                            <p class="polaroid-album">ALBUM NAME</p>
-                            <p class="polaroid-year">2023</p>
+            <div class="result-item">
+                <div class="polaroid">
+                    <div class="polaroid-content">
+                        <div class="polaroid-image">
+                            <img src="https://i.scdn.co/image/ab67616d0000b2731dacfbc31cc873d132958af9" alt="Demo Polaroid">
                         </div>
-                        <div class="polaroid-tracks">
-                            <p>TRACK 1. TRACK 2. TRACK 3.</p>
-                            <p>TRACK 4. TRACK 5. TRACK 6.</p>
+                        <div class="polaroid-info">
+                            <h3 class="polaroid-title">808S & HEARTBREAK</h3>
+                            <p class="polaroid-artist">KANYE WEST</p>
+                            <div class="polaroid-details">
+                                <p class="polaroid-album">808s & Heartbreak</p>
+                                <p class="polaroid-year">2008</p>
+                            </div>
+                            <div class="polaroid-tracks">
+                                <p>SAY YOU WILL. WELCOME TO HEARTBREAK.</p>
+                                <p>HEARTLESS. AMAZING. LOVE LOCKDOWN.</p>
+                                <p>PARANOID. ROBOCOP. STREET LIGHTS.</p>
+                            </div>
                         </div>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Share Modal -->
+    <div class="share-modal" id="share-modal">
+        <span class="close-modal" id="close-modal">&times;</span>
+        <div class="modal-content">
+            <h2>Share Your Polaroid</h2>
+            <img id="modal-image" class="modal-image" src="" alt="Polaroid to share">
+            <p>Share this polaroid with your friends:</p>
+            <div class="share-options">
+                <button class="share-option" id="copy-link">Copy Link</button>
+                <button class="share-option" id="download-image">Download</button>
+                <button class="share-option" id="share-twitter">Twitter</button>
             </div>
         </div>
     </div>
@@ -305,12 +398,49 @@ INDEX_TEMPLATE = """
             const searchButton = document.getElementById('search-button');
             const loadingElement = document.getElementById('loading');
             const resultsContainer = document.getElementById('results-container');
+            const shareModal = document.getElementById('share-modal');
+            const modalImage = document.getElementById('modal-image');
+            const closeModal = document.getElementById('close-modal');
+            const copyLink = document.getElementById('copy-link');
+            const downloadImage = document.getElementById('download-image');
+            const shareTwitter = document.getElementById('share-twitter');
+            
+            let currentImageUrl = '';
             
             searchButton.addEventListener('click', performSearch);
             searchInput.addEventListener('keypress', function(e) {
                 if (e.key === 'Enter') {
                     performSearch();
                 }
+            });
+            
+            closeModal.addEventListener('click', function() {
+                shareModal.style.display = 'none';
+            });
+            
+            copyLink.addEventListener('click', function() {
+                navigator.clipboard.writeText(currentImageUrl)
+                    .then(() => {
+                        alert('Link copied to clipboard!');
+                    })
+                    .catch(err => {
+                        console.error('Failed to copy link: ', err);
+                    });
+            });
+            
+            downloadImage.addEventListener('click', function() {
+                const link = document.createElement('a');
+                link.href = currentImageUrl;
+                link.download = 'spotify-polaroid.png';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            });
+            
+            shareTwitter.addEventListener('click', function() {
+                const text = 'Check out this Spotify Polaroid I created!';
+                const url = encodeURIComponent(currentImageUrl);
+                window.open(`https://twitter.com/intent/tweet?text=${text}&url=${url}`, '_blank');
             });
             
             function performSearch() {
@@ -382,9 +512,6 @@ INDEX_TEMPLATE = """
                     trackList = `<p>${track.album.toUpperCase()}.</p>`;
                 }
                 
-                // Extract Spotify track ID from URI
-                const spotifyTrackId = track.spotify_uri ? track.spotify_uri.split(':').pop() : '';
-                
                 resultItem.innerHTML = `
                     <div class="polaroid">
                         <div class="polaroid-content">
@@ -402,16 +529,11 @@ INDEX_TEMPLATE = """
                                     ${trackList}
                                 </div>
                             </div>
-                            ${spotifyTrackId ? `
-                            <iframe class="spotify-player" 
-                                src="https://open.spotify.com/embed/track/${spotifyTrackId}" 
-                                frameborder="0" 
-                                allowtransparency="true" 
-                                allow="encrypted-media">
-                            </iframe>
-                            ` : ''}
                         </div>
-                        <button class="download-btn" data-track='${JSON.stringify(track)}'>Download Polaroid</button>
+                        <div class="button-container">
+                            <button class="download-btn" data-track='${JSON.stringify(track)}'>Download</button>
+                            <button class="share-btn" data-track='${JSON.stringify(track)}'>Share</button>
+                        </div>
                     </div>
                 `;
                 
@@ -419,39 +541,104 @@ INDEX_TEMPLATE = """
                 const downloadBtn = resultItem.querySelector('.download-btn');
                 downloadBtn.addEventListener('click', function() {
                     const trackData = JSON.parse(this.getAttribute('data-track'));
-                    
-                    // Create a canvas from the polaroid for download
-                    html2canvas(this.parentElement, {
-                        backgroundColor: null,
-                        scale: 2,
-                        logging: false,
-                        // Exclude the player and button from the image
-                        onclone: function(clonedDoc) {
-                            const clonedPolaroid = clonedDoc.querySelector('.polaroid');
-                            const playerToRemove = clonedPolaroid.querySelector('.spotify-player');
-                            const buttonToRemove = clonedPolaroid.querySelector('.download-btn');
-                            
-                            if (playerToRemove) playerToRemove.remove();
-                            if (buttonToRemove) buttonToRemove.remove();
-                        }
-                    }).then(canvas => {
-                        // Convert canvas to a downloadable image
-                        const link = document.createElement('a');
-                        link.download = `${trackData.artist} - ${trackData.name} Polaroid.png`;
-                        link.href = canvas.toDataURL('image/png');
-                        link.click();
-                    }).catch(err => {
-                        console.error("Error generating image:", err);
-                        alert("Failed to generate downloadable image. Please try again.");
-                    });
+                    generateAndDownloadImage(this.closest('.polaroid'), trackData);
+                });
+                
+                // Add share functionality
+                const shareBtn = resultItem.querySelector('.share-btn');
+                shareBtn.addEventListener('click', function() {
+                    const trackData = JSON.parse(this.getAttribute('data-track'));
+                    generateAndShareImage(this.closest('.polaroid'), trackData);
                 });
                 
                 return resultItem;
             }
+            
+            function generateAndDownloadImage(polaroidElement, trackData) {
+                // Create a clone of the polaroid for image generation
+                const polaroidClone = polaroidElement.cloneNode(true);
+                
+                // Remove buttons from the clone
+                const buttonContainer = polaroidClone.querySelector('.button-container');
+                if (buttonContainer) {
+                    buttonContainer.remove();
+                }
+                
+                // Append the clone to the body temporarily (hidden)
+                polaroidClone.style.position = 'absolute';
+                polaroidClone.style.left = '-9999px';
+                document.body.appendChild(polaroidClone);
+                
+                // Generate image from the clone
+                html2canvas(polaroidClone, {
+                    backgroundColor: null,
+                    scale: 2,
+                    logging: false
+                }).then(canvas => {
+                    // Remove the clone
+                    document.body.removeChild(polaroidClone);
+                    
+                    // Convert canvas to a downloadable image
+                    const link = document.createElement('a');
+                    link.download = `${trackData.artist} - ${trackData.name} Polaroid.png`;
+                    link.href = canvas.toDataURL('image/png');
+                    link.click();
+                }).catch(err => {
+                    console.error("Error generating image:", err);
+                    alert("Failed to generate downloadable image. Please try again.");
+                    
+                    // Clean up
+                    if (document.body.contains(polaroidClone)) {
+                        document.body.removeChild(polaroidClone);
+                    }
+                });
+            }
+            
+            function generateAndShareImage(polaroidElement, trackData) {
+                // Create a clone of the polaroid for image generation
+                const polaroidClone = polaroidElement.cloneNode(true);
+                
+                // Remove buttons from the clone
+                const buttonContainer = polaroidClone.querySelector('.button-container');
+                if (buttonContainer) {
+                    buttonContainer.remove();
+                }
+                
+                // Append the clone to the body temporarily (hidden)
+                polaroidClone.style.position = 'absolute';
+                polaroidClone.style.left = '-9999px';
+                document.body.appendChild(polaroidClone);
+                
+                // Generate image from the clone
+                html2canvas(polaroidClone, {
+                    backgroundColor: null,
+                    scale: 2,
+                    logging: false
+                }).then(canvas => {
+                    // Remove the clone
+                    document.body.removeChild(polaroidClone);
+                    
+                    // Set the image in the modal
+                    const imageUrl = canvas.toDataURL('image/png');
+                    currentImageUrl = imageUrl;
+                    modalImage.src = imageUrl;
+                    
+                    // Show the modal
+                    shareModal.style.display = 'flex';
+                }).catch(err => {
+                    console.error("Error generating image:", err);
+                    alert("Failed to generate shareable image. Please try again.");
+                    
+                    // Clean up
+                    if (document.body.contains(polaroidClone)) {
+                        document.body.removeChild(polaroidClone);
+                    }
+                });
+            }
         });
     </script>
     
-    <!-- Add html2canvas for download functionality -->
+    <!-- Add html2canvas for image generation -->
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
 </body>
 </html>
