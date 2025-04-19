@@ -1,7 +1,10 @@
-from flask import Flask, render_template_string, request, jsonify
+from flask import Flask, render_template_string, request, jsonify, redirect, url_for
 import requests
 import base64
 import os
+import json
+import time
+import uuid
 from datetime import datetime
 
 app = Flask(__name__)
@@ -9,6 +12,9 @@ app = Flask(__name__)
 # Get Spotify API credentials from environment variables
 CLIENT_ID = os.environ.get("SPOTIFY_CLIENT_ID")
 CLIENT_SECRET = os.environ.get("SPOTIFY_CLIENT_SECRET")
+
+# In-memory storage for polaroids (in a production app, use a database)
+polaroids = {}
 
 # HTML template as a string
 INDEX_TEMPLATE = """
@@ -132,8 +138,8 @@ INDEX_TEMPLATE = """
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
             padding: 15px 15px 30px;
             display: inline-block;
-            width: 100%;
-            max-width: 400px;
+            width: 736px; /* Exact width from reference */
+            max-width: 100%;
             transition: transform 0.3s, box-shadow 0.3s;
         }
 
@@ -149,7 +155,8 @@ INDEX_TEMPLATE = """
 
         .polaroid-image {
             width: 100%;
-            height: 300px;
+            height: auto;
+            aspect-ratio: 1/1;
             overflow: hidden;
             margin-bottom: 15px;
             background-color: #f5f5f5;
@@ -167,17 +174,14 @@ INDEX_TEMPLATE = """
         }
 
         .polaroid-title {
-            font-size: 1.5rem;
+            font-size: 32px;
             font-weight: 600;
             margin-bottom: 5px;
             letter-spacing: 1px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
         }
 
         .polaroid-artist {
-            font-size: 1.1rem;
+            font-size: 24px;
             margin-bottom: 10px;
             opacity: 0.8;
         }
@@ -186,14 +190,11 @@ INDEX_TEMPLATE = """
             display: flex;
             justify-content: space-between;
             margin-bottom: 10px;
-            font-size: 0.9rem;
+            font-size: 18px;
         }
 
         .polaroid-album {
             max-width: 70%;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
         }
 
         .polaroid-year {
@@ -202,7 +203,7 @@ INDEX_TEMPLATE = """
 
         .polaroid-tracks {
             font-family: 'Roboto Mono', monospace;
-            font-size: 0.8rem;
+            font-size: 16px;
             line-height: 1.4;
             opacity: 0.7;
             margin-top: 5px;
@@ -271,11 +272,15 @@ INDEX_TEMPLATE = """
             text-align: center;
         }
 
-        .modal-image {
-            max-width: 100%;
-            margin-bottom: 20px;
-            border: 10px solid white;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        .share-link {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            margin: 15px 0;
+            font-family: 'Roboto Mono', monospace;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            background-color: white;
         }
 
         .share-options {
@@ -309,13 +314,56 @@ INDEX_TEMPLATE = """
             cursor: pointer;
         }
 
+        .home-hero {
+            text-align: center;
+            margin: 60px 0;
+        }
+
+        .home-hero h2 {
+            font-size: 2rem;
+            margin-bottom: 20px;
+        }
+
+        .home-hero p {
+            font-size: 1.2rem;
+            max-width: 800px;
+            margin: 0 auto 30px;
+        }
+
+        .cta-button {
+            display: inline-block;
+            padding: 12px 24px;
+            background-color: #2d2b2c;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            font-size: 1.1rem;
+            transition: background-color 0.3s;
+        }
+
+        .cta-button:hover {
+            background-color: #1a1919;
+        }
+
+        .polaroid-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 40px 0;
+        }
+
+        .shared-polaroid {
+            max-width: 100%;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
         @media (max-width: 768px) {
             #search-input {
                 width: 70%;
             }
             
             .polaroid {
-                max-width: 100%;
+                width: 100%;
             }
             
             .button-container {
@@ -356,19 +404,18 @@ INDEX_TEMPLATE = """
                 <div class="polaroid">
                     <div class="polaroid-content">
                         <div class="polaroid-image">
-                            <img src="https://i.scdn.co/image/ab67616d0000b2731dacfbc31cc873d132958af9" alt="Demo Polaroid">
+                            <img src="https://i.scdn.co/image/ab67616d0000b2731dacfbc31cc873d132958af9" alt="Demo Polaroid" crossorigin="anonymous">
                         </div>
                         <div class="polaroid-info">
-                            <h3 class="polaroid-title">808S & HEARTBREAK</h3>
+                            <h3 class="polaroid-title">HEARTLESS</h3>
                             <p class="polaroid-artist">KANYE WEST</p>
                             <div class="polaroid-details">
                                 <p class="polaroid-album">808s & Heartbreak</p>
                                 <p class="polaroid-year">2008</p>
                             </div>
                             <div class="polaroid-tracks">
-                                <p>SAY YOU WILL. WELCOME TO HEARTBREAK.</p>
-                                <p>HEARTLESS. AMAZING. LOVE LOCKDOWN.</p>
-                                <p>PARANOID. ROBOCOP. STREET LIGHTS.</p>
+                                <p>808S. &.</p>
+                                <p>HEARTBREAK.</p>
                             </div>
                         </div>
                     </div>
@@ -382,11 +429,10 @@ INDEX_TEMPLATE = """
         <span class="close-modal" id="close-modal">&times;</span>
         <div class="modal-content">
             <h2>Share Your Polaroid</h2>
-            <img id="modal-image" class="modal-image" src="" alt="Polaroid to share">
-            <p>Share this polaroid with your friends:</p>
+            <p>Copy this link to share your polaroid:</p>
+            <input type="text" id="share-link" class="share-link" readonly>
             <div class="share-options">
                 <button class="share-option" id="copy-link">Copy Link</button>
-                <button class="share-option" id="download-image">Download</button>
                 <button class="share-option" id="share-twitter">Twitter</button>
             </div>
         </div>
@@ -399,13 +445,10 @@ INDEX_TEMPLATE = """
             const loadingElement = document.getElementById('loading');
             const resultsContainer = document.getElementById('results-container');
             const shareModal = document.getElementById('share-modal');
-            const modalImage = document.getElementById('modal-image');
+            const shareLink = document.getElementById('share-link');
             const closeModal = document.getElementById('close-modal');
-            const copyLink = document.getElementById('copy-link');
-            const downloadImage = document.getElementById('download-image');
-            const shareTwitter = document.getElementById('share-twitter');
-            
-            let currentImageUrl = '';
+            const copyLinkBtn = document.getElementById('copy-link');
+            const shareTwitterBtn = document.getElementById('share-twitter');
             
             searchButton.addEventListener('click', performSearch);
             searchInput.addEventListener('keypress', function(e) {
@@ -418,29 +461,16 @@ INDEX_TEMPLATE = """
                 shareModal.style.display = 'none';
             });
             
-            copyLink.addEventListener('click', function() {
-                navigator.clipboard.writeText(currentImageUrl)
-                    .then(() => {
-                        alert('Link copied to clipboard!');
-                    })
-                    .catch(err => {
-                        console.error('Failed to copy link: ', err);
-                    });
+            copyLinkBtn.addEventListener('click', function() {
+                shareLink.select();
+                document.execCommand('copy');
+                alert('Link copied to clipboard!');
             });
             
-            downloadImage.addEventListener('click', function() {
-                const link = document.createElement('a');
-                link.href = currentImageUrl;
-                link.download = 'spotify-polaroid.png';
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-            });
-            
-            shareTwitter.addEventListener('click', function() {
+            shareTwitterBtn.addEventListener('click', function() {
+                const url = shareLink.value;
                 const text = 'Check out this Spotify Polaroid I created!';
-                const url = encodeURIComponent(currentImageUrl);
-                window.open(`https://twitter.com/intent/tweet?text=${text}&url=${url}`, '_blank');
+                window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`, '_blank');
             });
             
             function performSearch() {
@@ -516,7 +546,7 @@ INDEX_TEMPLATE = """
                     <div class="polaroid">
                         <div class="polaroid-content">
                             <div class="polaroid-image">
-                                <img src="${track.image}" alt="${track.name}">
+                                <img src="${track.image}" alt="${track.name}" crossorigin="anonymous">
                             </div>
                             <div class="polaroid-info">
                                 <h3 class="polaroid-title">${track.name.toUpperCase()}</h3>
@@ -571,9 +601,11 @@ INDEX_TEMPLATE = """
                 
                 // Generate image from the clone
                 html2canvas(polaroidClone, {
-                    backgroundColor: null,
+                    backgroundColor: 'white',
                     scale: 2,
-                    logging: false
+                    logging: false,
+                    useCORS: true, // Important for loading cross-origin images
+                    allowTaint: false
                 }).then(canvas => {
                     // Remove the clone
                     document.body.removeChild(polaroidClone);
@@ -611,20 +643,44 @@ INDEX_TEMPLATE = """
                 
                 // Generate image from the clone
                 html2canvas(polaroidClone, {
-                    backgroundColor: null,
+                    backgroundColor: 'white',
                     scale: 2,
-                    logging: false
+                    logging: false,
+                    useCORS: true, // Important for loading cross-origin images
+                    allowTaint: false
                 }).then(canvas => {
                     // Remove the clone
                     document.body.removeChild(polaroidClone);
                     
-                    // Set the image in the modal
-                    const imageUrl = canvas.toDataURL('image/png');
-                    currentImageUrl = imageUrl;
-                    modalImage.src = imageUrl;
+                    // Get the image data URL
+                    const imageData = canvas.toDataURL('image/png');
                     
-                    // Show the modal
-                    shareModal.style.display = 'flex';
+                    // Save the polaroid to get a shareable link
+                    fetch('/save-polaroid', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ 
+                            trackData: trackData,
+                            imageData: imageData
+                        }),
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.error) {
+                            alert(`Error: ${data.error}`);
+                            return;
+                        }
+                        
+                        // Show the share modal with the link
+                        shareLink.value = data.shareUrl;
+                        shareModal.style.display = 'flex';
+                    })
+                    .catch(error => {
+                        console.error("Error saving polaroid:", error);
+                        alert("Failed to generate shareable link. Please try again.");
+                    });
                 }).catch(err => {
                     console.error("Error generating image:", err);
                     alert("Failed to generate shareable image. Please try again.");
@@ -640,6 +696,120 @@ INDEX_TEMPLATE = """
     
     <!-- Add html2canvas for image generation -->
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+</body>
+</html>
+"""
+
+# Polaroid view template
+POLAROID_TEMPLATE = """
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spotify Polaroid - Shared Image</title>
+    <meta property="og:title" content="Spotify Polaroid">
+    <meta property="og:description" content="Check out this Spotify Polaroid I created!">
+    <meta property="og:image" content="{{ image_url }}">
+    <meta property="og:type" content="website">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background-color: #dcd7d3;
+            color: #2d2b2c;
+            line-height: 1.6;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            letter-spacing: 2px;
+            font-weight: 600;
+        }
+
+        header p {
+            font-size: 1.2rem;
+            opacity: 0.8;
+        }
+
+        header a {
+            color: #2d2b2c;
+            text-decoration: none;
+            border-bottom: 1px solid #2d2b2c;
+            transition: opacity 0.3s;
+        }
+
+        header a:hover {
+            opacity: 0.7;
+        }
+
+        .polaroid-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 40px 0;
+        }
+
+        .shared-polaroid {
+            max-width: 100%;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .cta-container {
+            text-align: center;
+            margin-top: 40px;
+        }
+
+        .cta-button {
+            display: inline-block;
+            padding: 12px 24px;
+            background-color: #2d2b2c;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            font-size: 1.1rem;
+            transition: background-color 0.3s;
+        }
+
+        .cta-button:hover {
+            background-color: #1a1919;
+        }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Spotify Polaroid</h1>
+            <p><a href="/app">Create your own</a></p>
+        </header>
+        
+        <div class="polaroid-container">
+            <img src="{{ image_data }}" alt="Spotify Polaroid" class="shared-polaroid">
+        </div>
+        
+        <div class="cta-container">
+            <a href="/app" class="cta-button">Create Your Own Polaroid</a>
+        </div>
+    </div>
 </body>
 </html>
 """
@@ -725,6 +895,71 @@ def search():
         tracks_data.append(track_data)
     
     return jsonify({"results": tracks_data})
+
+@app.route('/save-polaroid', methods=['POST'])
+def save_polaroid():
+    data = request.json
+    track_data = data.get('trackData')
+    image_data = data.get('imageData')
+    
+    if not track_data or not image_data:
+        return jsonify({"error": "Missing required data"}), 400
+    
+    # Generate a unique ID for the polaroid
+    polaroid_id = str(uuid.uuid4())
+    
+    # Store the polaroid data
+    polaroids[polaroid_id] = {
+        "track_data": track_data,
+        "image_data": image_data,
+        "created_at": datetime.now().isoformat()
+    }
+    
+    # Generate a shareable URL
+    share_url = request.url_root.rstrip('/') + f"/polaroid/{polaroid_id}"
+    
+    return jsonify({
+        "success": True,
+        "id": polaroid_id,
+        "shareUrl": share_url
+    })
+
+@app.route('/polaroid/<polaroid_id>')
+def view_polaroid(polaroid_id):
+    if polaroid_id not in polaroids:
+        return "Polaroid not found", 404
+    
+    polaroid = polaroids[polaroid_id]
+    image_data = polaroid["image_data"]
+    image_url = request.url_root.rstrip('/') + f"/polaroid/{polaroid_id}/image"
+    
+    return render_template_string(
+        POLAROID_TEMPLATE, 
+        image_data=image_data,
+        image_url=image_url
+    )
+
+@app.route('/polaroid/<polaroid_id>/image')
+def get_polaroid_image(polaroid_id):
+    if polaroid_id not in polaroids:
+        return "Image not found", 404
+    
+    # Return the image data directly
+    image_data = polaroids[polaroid_id]["image_data"]
+    
+    # Extract the base64 data part (remove the prefix)
+    if ',' in image_data:
+        image_data = image_data.split(',', 1)[1]
+    
+    image_binary = base64.b64decode(image_data)
+    
+    response = app.response_class(
+        response=image_binary,
+        status=200,
+        mimetype='image/png'
+    )
+    
+    return response
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
