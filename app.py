@@ -138,7 +138,7 @@ INDEX_TEMPLATE = """
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
             padding: 15px 15px 30px;
             display: inline-block;
-            width: 736px; /* Exact width from reference */
+            width: 350px; /* Fixed width to match reference */
             max-width: 100%;
             transition: transform 0.3s, box-shadow 0.3s;
         }
@@ -174,14 +174,14 @@ INDEX_TEMPLATE = """
         }
 
         .polaroid-title {
-            font-size: 32px;
+            font-size: 24px;
             font-weight: 600;
             margin-bottom: 5px;
             letter-spacing: 1px;
         }
 
         .polaroid-artist {
-            font-size: 24px;
+            font-size: 18px;
             margin-bottom: 10px;
             opacity: 0.8;
         }
@@ -190,7 +190,7 @@ INDEX_TEMPLATE = """
             display: flex;
             justify-content: space-between;
             margin-bottom: 10px;
-            font-size: 18px;
+            font-size: 14px;
         }
 
         .polaroid-album {
@@ -203,7 +203,7 @@ INDEX_TEMPLATE = """
 
         .polaroid-tracks {
             font-family: 'Roboto Mono', monospace;
-            font-size: 16px;
+            font-size: 12px;
             line-height: 1.4;
             opacity: 0.7;
             margin-top: 5px;
@@ -364,6 +364,7 @@ INDEX_TEMPLATE = """
             
             .polaroid {
                 width: 100%;
+                max-width: 350px;
             }
             
             .button-container {
