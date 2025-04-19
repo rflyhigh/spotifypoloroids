@@ -6,9 +6,9 @@ from datetime import datetime
 
 app = Flask(__name__)
 
-# Spotify API credentials
-CLIENT_ID = "YOUR_SPOTIFY_CLIENT_ID"
-CLIENT_SECRET = "YOUR_SPOTIFY_CLIENT_SECRET"
+# Get Spotify API credentials from environment variables
+CLIENT_ID = os.environ.get("SPOTIFY_CLIENT_ID")
+CLIENT_SECRET = os.environ.get("SPOTIFY_CLIENT_SECRET")
 
 def get_spotify_token():
     auth_string = f"{CLIENT_ID}:{CLIENT_SECRET}"
@@ -54,6 +54,9 @@ def search():
     
     if not query:
         return jsonify({"error": "No search query provided"}), 400
+    
+    if not CLIENT_ID or not CLIENT_SECRET:
+        return jsonify({"error": "Spotify API credentials not configured"}), 500
     
     token = get_spotify_token()
     results = search_track(query, token)
