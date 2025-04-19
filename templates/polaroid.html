@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Sonroids - View Polaroid</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta property="og:title" content="Sonroids - Spotify Polaroid">
+    <meta property="og:description" content="Check out this Spotify track as a polaroid!">
+    <meta property="og:image" content="{{ image_data }}">
+    <style>
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background-color: #dcd7d3;
+            color: #2d2b2c;
+            text-align: center;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        h1 {
+            margin-bottom: 20px;
+        }
+        .polaroid-image {
+            max-width: 100%;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        .cta {
+            margin-top: 30px;
+        }
+        .cta a {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #2d2b2c;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+        }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <h1>Sonroids</h1>
+        <div>
+            <img src="{{ image_data }}" alt="Spotify Polaroid" class="polaroid-image">
+        </div>
+        <div class="cta">
+            <a href="/">Create Your Own Sonroids</a>
+        </div>
+    </div>
+</body>
+</html>
