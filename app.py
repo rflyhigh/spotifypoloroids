@@ -5,9 +5,12 @@ import uuid
 import json
 import io
 import zipfile
+import base64
 from database import init_db, get_db
 from spotify_api import get_spotify_token, search_track
 from models import save_polaroid, get_polaroid, get_polaroid_group, save_polaroid_group
+import requests
+from werkzeug.urls import url_parse
 
 app = Flask(__name__)
 
@@ -135,14 +138,87 @@ def download_group(group_id):
         return "Polaroid group not found", 404
     
     if format_type == 'pdf':
-        return "PDF download not implemented yet", 501
+        # For PDF download, we'll redirect to client-side generation
+        return redirect(url_for('view_group', group_id=group_id, download='pdf'))
     else:
-        # Create a ZIP file in memory
+        # Create a ZIP file in memory with the polaroid images
         memory_file = io.BytesIO()
+        
         with zipfile.ZipFile(memory_file, 'w') as zf:
             for i, polaroid in enumerate(group['polaroids']):
-                polaroid_data = json.dumps(polaroid).encode('utf-8')
-                zf.writestr(f"polaroid_{i+1}.json", polaroid_data)
+                # Download the image from the URL
+                try:
+                    image_url = polaroid['track']['image']
+                    image_response = requests.get(image_url)
+                    
+                    if image_response.status_code == 200:
+                        # Save the album image
+                        image_filename = f"polaroid_{i+1}_album.jpg"
+                        zf.writestr(image_filename, image_response.content)
+                        
+                        # Save the metadata as JSON
+                        metadata_filename = f"polaroid_{i+1}_metadata.json"
+                        metadata = {
+                            "track": polaroid['track'],
+                            "customization": polaroid['customization']
+                        }
+                        zf.writestr(metadata_filename, json.dumps(metadata, indent=2))
+                        
+                        # Create a simple HTML representation
+                        html_filename = f"polaroid_{i+1}.html"
+                        html_content = f"""
+                        <!DOCTYPE html>
+                        <html>
+                        <head>
+                            <title>{polaroid['track']['artist']} - {polaroid['track']['name']}</title>
+                            <style>
+                                body {{ font-family: Arial, sans-serif; text-align: center; }}
+                                .polaroid {{ 
+                                    width: 300px; 
+                                    padding: 15px 15px 30px; 
+                                    background: {polaroid['customization'].get('backgroundColor', '#ffffff')};
+                                    margin: 20px auto;
+                                    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+                                }}
+                                .polaroid img {{ width: 100%; height: auto; }}
+                                .title {{ font-size: 18px; font-weight: bold; margin-top: 10px; }}
+                                .artist {{ font-size: 16px; }}
+                                .details {{ font-size: 14px; margin-top: 5px; }}
+                            </style>
+                        </head>
+                        <body>
+                            <div class="polaroid">
+                                <img src="{image_filename}" alt="{polaroid['track']['name']}">
+                                <div class="title">{polaroid['track']['name']}</div>
+                                <div class="artist">{polaroid['track']['artist']}</div>
+                                <div class="details">
+                                    Album: {polaroid['track']['album']}<br>
+                                    Year: {polaroid['track']['year']}
+                                </div>
+                            </div>
+                        </body>
+                        </html>
+                        """
+                        zf.writestr(html_filename, html_content)
+                        
+                except Exception as e:
+                    print(f"Error processing polaroid {i+1}: {str(e)}")
+                    continue
+            
+            # Add a README file
+            readme_content = f"""
+            Spotify Polaroid Collection: {group['name']}
+            Created: {group['created_at']}
+            
+            This ZIP file contains {len(group['polaroids'])} polaroids.
+            For each polaroid, you'll find:
+            - The album image (polaroid_X_album.jpg)
+            - The metadata in JSON format (polaroid_X_metadata.json)
+            - A simple HTML representation (polaroid_X.html)
+            
+            To view the polaroids online, visit: {request.url_root.rstrip('/')}group/{group_id}
+            """
+            zf.writestr("README.txt", readme_content)
         
         memory_file.seek(0)
         return send_file(
@@ -151,6 +227,39 @@ def download_group(group_id):
             as_attachment=True,
             download_name=f"polaroid_group_{group_id}.zip"
         )
+
+@app.route('/check-font', methods=['POST'])
+def check_font():
+    font_url = request.json.get('fontUrl', '')
+    
+    if not font_url:
+        return jsonify({"error": "No font URL provided"}), 400
+    
+    # Basic validation of the font URL
+    parsed_url = url_parse(font_url)
+    if not parsed_url.scheme or not parsed_url.netloc:
+        return jsonify({"error": "Invalid URL format"}), 400
+    
+    # Check if URL ends with a font file extension
+    valid_extensions = ['.ttf', '.otf', '.woff', '.woff2']
+    has_valid_extension = any(font_url.lower().endswith(ext) for ext in valid_extensions)
+    
+    if not has_valid_extension:
+        return jsonify({"error": "URL does not point to a valid font file"}), 400
+    
+    # Try to fetch the font to verify it exists
+    try:
+        response = requests.head(font_url, timeout=5)
+        if response.status_code != 200:
+            return jsonify({"error": f"Font URL returned status code {response.status_code}"}), 400
+    except Exception as e:
+        return jsonify({"error": f"Could not access font URL: {str(e)}"}), 400
+    
+    return jsonify({
+        "success": True,
+        "message": "Font URL is valid",
+        "fontUrl": font_url
+    })
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
