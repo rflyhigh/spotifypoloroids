@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ group.name }} - Spotify Polaroid Group</title>
+    <meta property="og:title" content="{{ group.name }} - Spotify Polaroid Group">
+    <meta property="og:description" content="Check out this collection of Spotify Polaroids!">
+    <meta property="og:type" content="website">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@300;400&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background-color: #dcd7d3;
+            color: #2d2b2c;
+            line-height: 1.6;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            letter-spacing: 2px;
+            font-weight: 600;
+        }
+
+        header p {
+            font-size: 1.2rem;
+            opacity: 0.8;
+        }
+
+        header a {
+            color: #2d2b2c;
+            text-decoration: none;
+            border-bottom: 1px solid #2d2b2c;
+            transition: opacity 0.3s;
+        }
+
+        header a:hover {
+            opacity: 0.7;
+        }
+
+        .group-info {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 15px;
+            background-color: #f5f5f5;
+            border-radius: 8px;
+        }
+
+        .group-info h2 {
+            font-size: 1.8rem;
+            margin-bottom: 10px;
+        }
+
+        .group-info p {
+            font-size: 1rem;
+            opacity: 0.8;
+        }
+
+        .polaroids-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 30px;
+            margin: 40px 0;
+        }
+
+        .polaroid {
+            background-color: white;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            padding: 15px 15px 30px;
+            display: inline-block;
+            width: 100%;
+            max-width: 350px;
+            margin: 0 auto;
+        }
+
+        .polaroid-content {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .polaroid-image {
+            width: 100%;
+            height: auto;
+            aspect-ratio: 1/1;
+            overflow: hidden;
+            margin-bottom: 15px;
+            background-color: #f5f5f5;
+        }
+
+        .polaroid-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .polaroid-info {
+            text-align: left;
+            padding: 0 5px;
+        }
+
+        .polaroid-title {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 5px;
+            letter-spacing: 1px;
+        }
+
+        .polaroid-artist {
+            font-size: 18px;
+            margin-bottom: 10px;
+            opacity: 0.8;
+        }
+
+        .polaroid-details {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+
+        .polaroid-album {
+            max-width: 70%;
+        }
+
+        .polaroid-year {
+            font-weight: 500;
+        }
+
+        .polaroid-tracks {
+            font-family: 'Roboto Mono', monospace;
+            font-size: 12px;
+            line-height: 1.4;
+            opacity: 0.7;
+            margin-top: 5px;
+        }
+
+        .cta-container {
+            text-align: center;
+            margin-top: 40px;
+        }
+
+        .cta-button {
+            display: inline-block;
+            padding: 12px 24px;
+            background-color: #2d2b2c;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            font-size: 1.1rem;
+            transition: background-color 0.3s;
+            margin: 0 10px 10px;
+        }
+
+        .cta-button:hover {
+            background-color: #1a1919;
+        }
+
+        @media (max-width: 768px) {
+            .polaroids-grid {
+                grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            }
+            
+            .cta-button {
+                display: block;
+                margin: 10px auto;
+                max-width: 250px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Spotify Polaroid Collection</h1>
+            <p><a href="/app">Create your own</a></p>
+        </header>
+        
+        <div class="group-info">
+            <h2>{{ group.name }}</h2>
+            <p>Created on {{ group.created_at|replace('T', ' ')|replace('Z', '')|truncate(16, True, '') }}</p>
+        </div>
+        
+        <div class="polaroids-grid">
+            {% for polaroid in group.polaroids %}
+            <div class="polaroid" style="
+                background-color: {{ polaroid.customization.backgroundColor|default('#ffffff') }};
+                {% if polaroid.customization.borderStyle and polaroid.customization.borderStyle != 'none' %}
+                border: 2px {{ polaroid.customization.borderStyle }} {{ polaroid.customization.borderColor|default('#000000') }};
+                {% endif %}
+                {% if polaroid.customization.backgroundImage == 'gradient' %}
+                background-image: linear-gradient({{ polaroid.customization.gradientDirection|default('to bottom') }}, 
+                                {{ polaroid.customization.gradientColor1|default('#ffffff') }}, 
+                                {{ polaroid.customization.gradientColor2|default('#f0f0f0') }});
+                {% elif polaroid.customization.backgroundImage == 'pattern' %}
+                    {% if polaroid.customization.patternStyle == 'dots' %}
+                    background-image: radial-gradient({{ polaroid.customization.patternColor|default('#f0f0f0') }} 1px, transparent 1px);
+                    background-size: 10px 10px;
+                    {% elif polaroid.customization.patternStyle == 'stripes' %}
+                    background-image: linear-gradient(45deg, {{ polaroid.customization.patternColor|default('#f0f0f0') }} 25%, transparent 25%, transparent 50%, 
+                                    {{ polaroid.customization.patternColor|default('#f0f0f0') }} 50%, {{ polaroid.customization.patternColor|default('#f0f0f0') }} 75%, transparent 75%, transparent);
+                    background-size: 20px 20px;
+                    {% elif polaroid.customization.patternStyle == 'grid' %}
+                    background-image: linear-gradient({{ polaroid.customization.patternColor|default('#f0f0f0') }} 1px, transparent 1px),
+                                    linear-gradient(90deg, {{ polaroid.customization.patternColor|default('#f0f0f0') }} 1px, transparent 1px);
+                    background-size: 20px 20px;
+                    {% endif %}
+                {% endif %}
+            ">
+                <div class="polaroid-content">
+                    <div class="polaroid-image">
+                        <img src="{{ polaroid.track.image }}" alt="{{ polaroid.track.name }}" crossorigin="anonymous">
+                    </div>
+                    <div class="polaroid-info">
+                        <h3 class="polaroid-title" style="
+                            font-family: {{ polaroid.customization.titleFont|default('Montserrat') }};
+                            font-size: {{ polaroid.customization.titleSize|default('24px') }};
+                            color: {{ polaroid.customization.textColor|default('#000000') }};
+                        ">{{ polaroid.track.name|upper }}</h3>
+                        <p class="polaroid-artist" style="color: {{ polaroid.customization.textColor|default('#000000') }};">
+                            {{ polaroid.track.artist|upper }}
+                        </p>
+                        <div class="polaroid-details" style="color: {{ polaroid.customization.textColor|default('#000000') }};">
+                            <p class="polaroid-album">{{ polaroid.track.album }}</p>
+                            <p class="polaroid-year">{{ polaroid.track.year }}</p>
+                        </div>
+                        <div class="polaroid-tracks" style="color: {{ polaroid.customization.textColor|default('#000000') }};">
+                            {% set album_words = polaroid.track.album.split() %}
+                            {% if album_words|length > 1 %}
+                                {% set first_half = album_words[:album_words|length//2 + album_words|length%2]|join('. ')|upper ~ '.' %}
+                                {% set second_half = album_words[album_words|length//2 + album_words|length%2:]|join('. ')|upper ~ '.' %}
+                                <p>{{ first_half }}</p>
+                                <p>{{ second_half }}</p>
+                            {% else %}
+                                <p>{{ polaroid.track.album|upper }}.</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <div class="cta-container">
+            <a href="/app" class="cta-button">Create Your Own Collection</a>
+            <a href="/download-group/{{ group.id }}?format=zip" class="cta-button">Download as ZIP</a>
+            <a href="/download-group/{{ group.id }}?format=pdf" class="cta-button">Download as PDF</a>
+        </div>
+    </div>
+    
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+</body>
+</html>
