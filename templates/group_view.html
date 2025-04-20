@@ -9,6 +9,7 @@
     <meta property="og:type" content="website">
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@300;400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
         * {
             margin: 0;
@@ -64,6 +65,7 @@
             padding: 15px;
             background-color: #f5f5f5;
             border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
 
         .group-info h2 {
@@ -83,6 +85,11 @@
             margin: 40px 0;
         }
 
+        .polaroid-wrapper {
+            display: flex;
+            justify-content: center;
+        }
+
         .polaroid {
             background-color: white;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
@@ -90,7 +97,12 @@
             display: inline-block;
             width: 100%;
             max-width: 350px;
-            margin: 0 auto;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .polaroid:hover {
+            transform: scale(1.02);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
         }
 
         .polaroid-content {
@@ -123,12 +135,18 @@
             font-weight: 600;
             margin-bottom: 5px;
             letter-spacing: 1px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .polaroid-artist {
             font-size: 18px;
             margin-bottom: 10px;
             opacity: 0.8;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .polaroid-details {
@@ -140,6 +158,9 @@
 
         .polaroid-album {
             max-width: 70%;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .polaroid-year {
@@ -152,6 +173,8 @@
             line-height: 1.4;
             opacity: 0.7;
             margin-top: 5px;
+            max-height: 3em;
+            overflow: hidden;
         }
 
         .cta-container {
@@ -175,15 +198,113 @@
             background-color: #1a1919;
         }
 
+        .floating-actions {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            display: none;
+        }
+
+        .floating-action-btn {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background-color: #2d2b2c;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            cursor: pointer;
+            font-size: 24px;
+            transition: background-color 0.3s, transform 0.3s;
+        }
+
+        .floating-action-btn:hover {
+            background-color: #1a1919;
+            transform: scale(1.1);
+        }
+
+        .loading {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.7);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 4px solid white;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
         @media (max-width: 768px) {
             .polaroids-grid {
                 grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+                gap: 20px;
             }
             
             .cta-button {
                 display: block;
                 margin: 10px auto;
                 max-width: 250px;
+            }
+            
+            .floating-actions {
+                display: block;
+            }
+            
+            .cta-container {
+                display: none;
+            }
+            
+            header h1 {
+                font-size: 2rem;
+            }
+            
+            .group-info h2 {
+                font-size: 1.5rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 10px;
+            }
+            
+            .container {
+                padding: 10px;
+            }
+            
+            .polaroids-grid {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+            
+            header h1 {
+                font-size: 1.8rem;
+            }
+            
+            .group-info {
+                padding: 10px;
+            }
+            
+            .polaroid {
+                max-width: 300px;
             }
         }
     </style>
@@ -202,57 +323,176 @@
         
         <div class="polaroids-grid">
             {% for polaroid in group.polaroids %}
-            <div class="polaroid" style="
-                background-color: {{ polaroid.customization.backgroundColor|default('#ffffff') }};
-                {% if polaroid.customization.borderStyle and polaroid.customization.borderStyle != 'none' %}
-                border: 2px {{ polaroid.customization.borderStyle }} {{ polaroid.customization.borderColor|default('#000000') }};
-                {% endif %}
-                {% if polaroid.customization.backgroundImage == 'gradient' %}
-                background-image: linear-gradient({{ polaroid.customization.gradientDirection|default('to bottom') }}, 
-                                {{ polaroid.customization.gradientColor1|default('#ffffff') }}, 
-                                {{ polaroid.customization.gradientColor2|default('#f0f0f0') }});
-                {% elif polaroid.customization.backgroundImage == 'pattern' %}
-                    {% if polaroid.customization.patternStyle == 'dots' %}
-                    background-image: radial-gradient({{ polaroid.customization.patternColor|default('#f0f0f0') }} 1px, transparent 1px);
-                    background-size: 10px 10px;
-                    {% elif polaroid.customization.patternStyle == 'stripes' %}
-                    background-image: linear-gradient(45deg, {{ polaroid.customization.patternColor|default('#f0f0f0') }} 25%, transparent 25%, transparent 50%, 
-                                    {{ polaroid.customization.patternColor|default('#f0f0f0') }} 50%, {{ polaroid.customization.patternColor|default('#f0f0f0') }} 75%, transparent 75%, transparent);
-                    background-size: 20px 20px;
-                    {% elif polaroid.customization.patternStyle == 'grid' %}
-                    background-image: linear-gradient({{ polaroid.customization.patternColor|default('#f0f0f0') }} 1px, transparent 1px),
-                                    linear-gradient(90deg, {{ polaroid.customization.patternColor|default('#f0f0f0') }} 1px, transparent 1px);
-                    background-size: 20px 20px;
+            <div class="polaroid-wrapper">
+                <div class="polaroid" style="
+                    background-color: {{ polaroid.customization.backgroundColor|default('#ffffff') }};
+                    {% if polaroid.customization.borderStyle and polaroid.customization.borderStyle != 'none' %}
+                    border: {{ polaroid.customization.borderWidth|default('2px') }} {{ polaroid.customization.borderStyle }} {{ polaroid.customization.borderColor|default('#000000') }};
                     {% endif %}
-                {% endif %}
-            ">
-                <div class="polaroid-content">
-                    <div class="polaroid-image">
-                        <img src="{{ polaroid.track.image }}" alt="{{ polaroid.track.name }}" crossorigin="anonymous">
-                    </div>
-                    <div class="polaroid-info">
-                        <h3 class="polaroid-title" style="
-                            font-family: {{ polaroid.customization.titleFont|default('Montserrat') }};
-                            font-size: {{ polaroid.customization.titleSize|default('24px') }};
-                            color: {{ polaroid.customization.textColor|default('#000000') }};
-                        ">{{ polaroid.track.name|upper }}</h3>
-                        <p class="polaroid-artist" style="color: {{ polaroid.customization.textColor|default('#000000') }};">
-                            {{ polaroid.track.artist|upper }}
-                        </p>
-                        <div class="polaroid-details" style="color: {{ polaroid.customization.textColor|default('#000000') }};">
-                            <p class="polaroid-album">{{ polaroid.track.album }}</p>
-                            <p class="polaroid-year">{{ polaroid.track.year }}</p>
+                    {% if polaroid.customization.borderRadius %}
+                    border-radius: {{ polaroid.customization.borderRadius }};
+                    {% endif %}
+                    {% if polaroid.customization.backgroundImage == 'gradient' %}
+                        {% if polaroid.customization.gradientDirection == 'circle' or polaroid.customization.gradientDirection == 'ellipse' %}
+                        background-image: radial-gradient({{ polaroid.customization.gradientDirection }}, 
+                                    {{ polaroid.customization.gradientColor1|default('#ffffff') }}, 
+                                    {{ polaroid.customization.gradientColor2|default('#f0f0f0') }});
+                        {% else %}
+                        background-image: linear-gradient({{ polaroid.customization.gradientDirection|default('to bottom') }}, 
+                                    {{ polaroid.customization.gradientColor1|default('#ffffff') }}, 
+                                    {{ polaroid.customization.gradientColor2|default('#f0f0f0') }});
+                        {% endif %}
+                    {% elif polaroid.customization.backgroundImage == 'pattern' %}
+                        {% if polaroid.customization.patternStyle == 'dots' %}
+                        background-image: radial-gradient({{ polaroid.customization.patternColor|default('#f0f0f0') }} 1px, transparent 1px);
+                        background-size: {{ polaroid.customization.patternSize|default('10px') }} {{ polaroid.customization.patternSize|default('10px') }};
+                        {% elif polaroid.customization.patternStyle == 'stripes' %}
+                        background-image: linear-gradient(45deg, {{ polaroid.customization.patternColor|default('#f0f0f0') }} 25%, transparent 25%, transparent 50%, 
+                                        {{ polaroid.customization.patternColor|default('#f0f0f0') }} 50%, {{ polaroid.customization.patternColor|default('#f0f0f0') }} 75%, transparent 75%, transparent);
+                        background-size: {{ polaroid.customization.patternSize|default('10px') }} {{ polaroid.customization.patternSize|default('10px') }};
+                        {% elif polaroid.customization.patternStyle == 'grid' %}
+                        background-image: linear-gradient({{ polaroid.customization.patternColor|default('#f0f0f0') }} 1px, transparent 1px),
+                                        linear-gradient(90deg, {{ polaroid.customization.patternColor|default('#f0f0f0') }} 1px, transparent 1px);
+                        background-size: {{ polaroid.customization.patternSize|default('10px') }} {{ polaroid.customization.patternSize|default('10px') }};
+                        {% elif polaroid.customization.patternStyle == 'zigzag' %}
+                        background-image: 
+                                    linear-gradient(135deg, {{ polaroid.customization.patternColor|default('#f0f0f0') }} 25%, transparent 25%), 
+                                    linear-gradient(225deg, {{ polaroid.customization.patternColor|default('#f0f0f0') }} 25%, transparent 25%), 
+                                    linear-gradient(315deg, {{ polaroid.customization.patternColor|default('#f0f0f0') }} 25%, transparent 25%), 
+                                    linear-gradient(45deg, {{ polaroid.customization.patternColor|default('#f0f0f0') }} 25%, transparent 25%);
+                        background-size: {{ polaroid.customization.patternSize|default('10px') }} {{ polaroid.customization.patternSize|default('10px') }};
+                        {% elif polaroid.customization.patternStyle == 'chevron' %}
+                        background-image: 
+                                    linear-gradient(135deg, {{ polaroid.customization.patternColor|default('#f0f0f0') }} 25%, transparent 25%), 
+                                    linear-gradient(225deg, {{ polaroid.customization.patternColor|default('#f0f0f0') }} 25%, transparent 25%);
+                        background-size: {{ polaroid.customization.patternSize|default('10px') }} {{ polaroid.customization.patternSize|default('10px') }};
+                        {% elif polaroid.customization.patternStyle == 'crosshatch' %}
+                        background-image: 
+                                    linear-gradient({{ polaroid.customization.patternColor|default('#f0f0f0') }} 1px, transparent 1px), 
+                                    linear-gradient(90deg, {{ polaroid.customization.patternColor|default('#f0f0f0') }} 1px, transparent 1px),
+                                    linear-gradient({{ polaroid.customization.patternColor|default('#f0f0f0') }} 0.5px, transparent 0.5px), 
+                                    linear-gradient(90deg, {{ polaroid.customization.patternColor|default('#f0f0f0') }} 0.5px, transparent 0.5px);
+                        background-size: {{ polaroid.customization.patternSize|default('10px') }} {{ polaroid.customization.patternSize|default('10px') }}, 
+                                    {{ polaroid.customization.patternSize|default('10px') }} {{ polaroid.customization.patternSize|default('10px') }}, 
+                                    calc({{ polaroid.customization.patternSize|default('10px') }} / 2) calc({{ polaroid.customization.patternSize|default('10px') }} / 2), 
+                                    calc({{ polaroid.customization.patternSize|default('10px') }} / 2) calc({{ polaroid.customization.patternSize|default('10px') }} / 2);
+                        {% endif %}
+                    {% elif polaroid.customization.backgroundImage == 'custom' and polaroid.customization.backgroundImageUrl %}
+                        background-image: url('{{ polaroid.customization.backgroundImageUrl }}');
+                        background-size: cover;
+                        background-position: center;
+                    {% endif %}
+                    {% if polaroid.customization.boxShadow == 'light' %}
+                        box-shadow: 0 4px 8px {{ polaroid.customization.shadowColor|default('rgba(0,0,0,0.1)') }};
+                    {% elif polaroid.customization.boxShadow == 'medium' %}
+                        box-shadow: 0 6px 12px {{ polaroid.customization.shadowColor|default('rgba(0,0,0,0.1)') }};
+                    {% elif polaroid.customization.boxShadow == 'heavy' %}
+                        box-shadow: 0 8px 16px {{ polaroid.customization.shadowColor|default('rgba(0,0,0,0.1)') }};
+                    {% elif polaroid.customization.boxShadow == 'inset' %}
+                        box-shadow: inset 0 0 8px {{ polaroid.customization.shadowColor|default('rgba(0,0,0,0.1)') }};
+                    {% endif %}
+                    {% if polaroid.customization.rotation and polaroid.customization.rotation != '0deg' %}
+                        transform: rotate({{ polaroid.customization.rotation }});
+                    {% endif %}
+                ">
+                    <div class="polaroid-content">
+                        <div class="polaroid-image">
+                            <img src="{{ polaroid.track.image }}" alt="{{ polaroid.track.name }}" crossorigin="anonymous" style="
+                                {% if polaroid.customization.imageFilter == 'grayscale' %}
+                                    filter: grayscale({{ polaroid.customization.filterIntensity|default('50%') }});
+                                {% elif polaroid.customization.imageFilter == 'sepia' %}
+                                    filter: sepia({{ polaroid.customization.filterIntensity|default('50%') }});
+                                {% elif polaroid.customization.imageFilter == 'saturate' %}
+                                    filter: saturate({{ 100 + polaroid.customization.filterIntensity|int|default(50) }}%);
+                                {% elif polaroid.customization.imageFilter == 'hue-rotate' %}
+                                    filter: hue-rotate({{ (polaroid.customization.filterIntensity|float|default(50) * 3.6)|int }}deg);
+                                {% elif polaroid.customization.imageFilter == 'invert' %}
+                                    filter: invert({{ polaroid.customization.filterIntensity|default('50%') }});
+                                {% endif %}
+                            ">
                         </div>
-                        <div class="polaroid-tracks" style="color: {{ polaroid.customization.textColor|default('#000000') }};">
-                            {% set album_words = polaroid.track.album.split() %}
-                            {% if album_words|length > 1 %}
-                                {% set first_half = album_words[:album_words|length//2 + album_words|length%2]|join('. ')|upper ~ '.' %}
-                                {% set second_half = album_words[album_words|length//2 + album_words|length%2:]|join('. ')|upper ~ '.' %}
-                                <p>{{ first_half }}</p>
-                                <p>{{ second_half }}</p>
-                            {% else %}
-                                <p>{{ polaroid.track.album|upper }}.</p>
-                            {% endif %}
+                        <div class="polaroid-info">
+                            <h3 class="polaroid-title" style="
+                                font-family: {{ polaroid.customization.titleFont|default('Montserrat') }};
+                                font-size: {{ polaroid.customization.titleSize|default('24px') }};
+                                color: {{ polaroid.customization.textColor|default('#000000') }};
+                                text-transform: {{ polaroid.customization.textTransform|default('uppercase') }};
+                                text-overflow: {{ 'ellipsis' if polaroid.customization.textTruncate == 'ellipsis' else 'clip' }};
+                                {% if polaroid.customization.textShadow == 'light' %}
+                                    text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
+                                {% elif polaroid.customization.textShadow == 'medium' %}
+                                    text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+                                {% elif polaroid.customization.textShadow == 'heavy' %}
+                                    text-shadow: 3px 3px 6px rgba(0,0,0,0.2);
+                                {% endif %}
+                            ">
+                                {% if polaroid.customization.textTransform == 'uppercase' %}
+                                    {{ polaroid.track.name|upper }}
+                                {% elif polaroid.customization.textTransform == 'lowercase' %}
+                                    {{ polaroid.track.name|lower }}
+                                {% elif polaroid.customization.textTransform == 'capitalize' %}
+                                    {{ polaroid.track.name|title }}
+                                {% else %}
+                                    {{ polaroid.track.name }}
+                                {% endif %}
+                            </h3>
+                            <p class="polaroid-artist" style="
+                                font-size: {{ polaroid.customization.artistSize|default('18px') }};
+                                color: {{ polaroid.customization.textColor|default('#000000') }};
+                                text-transform: {{ polaroid.customization.textTransform|default('uppercase') }};
+                                text-overflow: {{ 'ellipsis' if polaroid.customization.textTruncate == 'ellipsis' else 'clip' }};
+                                {% if polaroid.customization.textShadow == 'light' %}
+                                    text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
+                                {% elif polaroid.customization.textShadow == 'medium' %}
+                                    text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+                                {% elif polaroid.customization.textShadow == 'heavy' %}
+                                    text-shadow: 3px 3px 6px rgba(0,0,0,0.2);
+                                {% endif %}
+                            ">
+                                {% if polaroid.customization.textTransform == 'uppercase' %}
+                                    {{ polaroid.track.artist|upper }}
+                                {% elif polaroid.customization.textTransform == 'lowercase' %}
+                                    {{ polaroid.track.artist|lower }}
+                                {% elif polaroid.customization.textTransform == 'capitalize' %}
+                                    {{ polaroid.track.artist|title }}
+                                {% else %}
+                                    {{ polaroid.track.artist }}
+                                {% endif %}
+                            </p>
+                            <div class="polaroid-details" style="
+                                font-size: {{ polaroid.customization.detailsSize|default('14px') }};
+                                color: {{ polaroid.customization.textColor|default('#000000') }};
+                                {% if polaroid.customization.textShadow == 'light' %}
+                                    text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
+                                {% elif polaroid.customization.textShadow == 'medium' %}
+                                    text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+                                {% elif polaroid.customization.textShadow == 'heavy' %}
+                                    text-shadow: 3px 3px 6px rgba(0,0,0,0.2);
+                                {% endif %}
+                            ">
+                                <p class="polaroid-album">{{ polaroid.track.album }}</p>
+                                <p class="polaroid-year">{{ polaroid.track.year }}</p>
+                            </div>
+                            <div class="polaroid-tracks" style="
+                                color: {{ polaroid.customization.textColor|default('#000000') }};
+                                {% if polaroid.customization.textShadow == 'light' %}
+                                    text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
+                                {% elif polaroid.customization.textShadow == 'medium' %}
+                                    text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+                                {% elif polaroid.customization.textShadow == 'heavy' %}
+                                    text-shadow: 3px 3px 6px rgba(0,0,0,0.2);
+                                {% endif %}
+                            ">
+                                {% set album_words = polaroid.track.album.split() %}
+                                {% if album_words|length > 1 %}
+                                    {% set first_half = album_words[:album_words|length//2 + album_words|length%2]|join('. ')|upper ~ '.' %}
+                                    {% set second_half = album_words[album_words|length//2 + album_words|length%2:]|join('. ')|upper ~ '.' %}
+                                    <p>{{ first_half }}</p>
+                                    <p>{{ second_half }}</p>
+                                {% else %}
+                                    <p>{{ polaroid.track.album|upper }}.</p>
+                                {% endif %}
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -267,6 +507,166 @@
         </div>
     </div>
     
+    <div class="floating-actions">
+        <div class="floating-action-btn" id="floating-action-btn">
+            <i class="fas fa-ellipsis-v"></i>
+        </div>
+    </div>
+    
+    <div class="loading" id="loading">
+        <div class="spinner"></div>
+    </div>
+    
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const floatingActionBtn = document.getElementById('floating-action-btn');
+            const loadingIndicator = document.getElementById('loading');
+            
+            // Add click event to floating action button for mobile
+            floatingActionBtn.addEventListener('click', function() {
+                // Create a mobile menu
+                const menu = document.createElement('div');
+                menu.style.position = 'fixed';
+                menu.style.bottom = '90px';
+                menu.style.right = '20px';
+                menu.style.backgroundColor = 'white';
+                menu.style.borderRadius = '8px';
+                menu.style.boxShadow = '0 4px 8px rgba(0,0,0,0.2)';
+                menu.style.padding = '10px';
+                menu.style.zIndex = '999';
+                
+                // Add menu items
+                menu.innerHTML = `
+                    <div style="padding: 10px; border-bottom: 1px solid #eee; cursor: pointer;" id="create-own">Create Your Own</div>
+                    <div style="padding: 10px; border-bottom: 1px solid #eee; cursor: pointer;" id="download-zip">Download as ZIP</div>
+                    <div style="padding: 10px; cursor: pointer;" id="download-pdf">Download as PDF</div>
+                `;
+                
+                document.body.appendChild(menu);
+                
+                // Add click events to menu items
+                document.getElementById('create-own').addEventListener('click', function() {
+                    window.location.href = '/app';
+                });
+                
+                document.getElementById('download-zip').addEventListener('click', function() {
+                    downloadAsZip();
+                    document.body.removeChild(menu);
+                });
+                
+                document.getElementById('download-pdf').addEventListener('click', function() {
+                    downloadAsPdf();
+                    document.body.removeChild(menu);
+                });
+                
+                // Close menu when clicking outside
+                document.addEventListener('click', function closeMenu(e) {
+                    if (e.target !== floatingActionBtn && !menu.contains(e.target)) {
+                        document.body.removeChild(menu);
+                        document.removeEventListener('click', closeMenu);
+                    }
+                });
+            });
+            
+            // Download functions
+            function downloadAsZip() {
+                loadingIndicator.style.display = 'flex';
+                window.location.href = '/download-group/{{ group.id }}?format=zip';
+                
+                // Hide loading after a delay (assuming download started)
+                setTimeout(function() {
+                    loadingIndicator.style.display = 'none';
+                }, 3000);
+            }
+            
+            function downloadAsPdf() {
+                // For PDF, we'll generate it client-side for better quality
+                loadingIndicator.style.display = 'flex';
+                
+                // Get all polaroids
+                const polaroids = document.querySelectorAll('.polaroid');
+                
+                // Create a new PDF document
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF('p', 'mm', 'a4');
+                
+                // PDF dimensions
+                const pageWidth = pdf.internal.pageSize.getWidth();
+                const pageHeight = pdf.internal.pageSize.getHeight();
+                
+                // Calculate image dimensions to fit on page
+                const maxWidth = pageWidth - 20; // 10mm margin on each side
+                const maxHeight = pageHeight / 2 - 20; // 2 images per page with margins
+                
+                // Process each polaroid one by one
+                let processedCount = 0;
+                
+                polaroids.forEach((polaroid, index) => {
+                    html2canvas(polaroid, {
+                        backgroundColor: null,
+                        scale: 2,
+                        logging: false,
+                        useCORS: true,
+                        allowTaint: false
+                    }).then(canvas => {
+                        // Add a new page if needed (except for the first image)
+                        if (index > 0 && index % 2 === 0) {
+                            pdf.addPage();
+                        }
+                        
+                        // Calculate position (top or bottom half of page)
+                        const yPosition = (index % 2 === 0) ? 10 : pageHeight / 2 + 10;
+                        
+                        // Convert canvas to data URL
+                        const imgData = canvas.toDataURL('image/png');
+                        
+                        // Add image to PDF
+                        pdf.addImage(
+                            imgData, 
+                            'PNG', 
+                            10, // x position
+                            yPosition, // y position
+                            maxWidth, 
+                            maxHeight
+                        );
+                        
+                        // Track processed count
+                        processedCount++;
+                        
+                        // If all polaroids are processed, save the PDF
+                        if (processedCount === polaroids.length) {
+                            pdf.save('spotify_polaroids.pdf');
+                            loadingIndicator.style.display = 'none';
+                        }
+                    }).catch(err => {
+                        console.error(`Error generating image for polaroid ${index}:`, err);
+                        
+                        // Track processed count even on error
+                        processedCount++;
+                        
+                        // If all polaroids are processed, save the PDF
+                        if (processedCount === polaroids.length) {
+                            pdf.save('spotify_polaroids.pdf');
+                            loadingIndicator.style.display = 'none';
+                        }
+                    });
+                });
+                
+                // If no polaroids, hide loading
+                if (polaroids.length === 0) {
+                    loadingIndicator.style.display = 'none';
+                }
+            }
+            
+            // Check if URL has download parameter
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('download') === 'pdf') {
+                // Trigger PDF download automatically
+                setTimeout(downloadAsPdf, 1000);
+            }
+        });
+    </script>
 </body>
 </html>
